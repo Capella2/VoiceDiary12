@@ -53,8 +53,6 @@ export default function RecordScreen() {
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<Date | null>(null);
 
-  console.log('[RecordScreen] Rendering, state:', state);
-
   // Load current provider for the badge
   const [currentProvider, setCurrentProvider] = useState('groq');
 
@@ -63,7 +61,6 @@ export default function RecordScreen() {
       try {
         const p = getSetting(SETTINGS.PROVIDER) ?? 'groq';
         setCurrentProvider(p);
-        console.log('[RecordScreen] Current provider:', p);
       } catch (e) {
         console.error('[RecordScreen] Settings load error:', e);
       }
@@ -89,15 +86,10 @@ export default function RecordScreen() {
   // ── Start recording ────────────────────────────────────────────────────────
 
   async function startRecording() {
-    console.log('[RecordScreen] startRecording called');
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
-        console.warn('[RecordScreen] Microphone permission not granted');
-        Alert.alert(
-          'Нет доступа к микрофону',
-          'Разрешите доступ к микрофону в настройках телефона.'
-        );
+        Alert.alert('Нет доступа', 'Разрешите доступ к микрофону в настройках.');
         return;
       }
 
@@ -107,7 +99,6 @@ export default function RecordScreen() {
       });
 
       const recording = new Audio.Recording();
-      console.log('[RecordScreen] Preparing recording...');
       await recording.prepareToRecordAsync(RECORDING_OPTIONS);
       await recording.startAsync();
 
@@ -115,9 +106,7 @@ export default function RecordScreen() {
       startTimeRef.current = new Date();
       setState('recording');
       startTimer();
-      console.log('[RecordScreen] Recording started');
     } catch (e: any) {
-      console.error('[RecordScreen] startRecording ERROR:', e);
       Alert.alert('Ошибка записи', e.message ?? 'Не удалось начать запись.');
     }
   }
@@ -125,7 +114,6 @@ export default function RecordScreen() {
   // ── Stop recording ─────────────────────────────────────────────────────────
 
   async function stopRecording() {
-    console.log('[RecordScreen] stopRecording called');
     stopTimer();
     const finalDuration = elapsed;
 
@@ -140,18 +128,13 @@ export default function RecordScreen() {
       setDuration(finalDuration);
       setAudioUri(uri ?? null);
       setState('recorded');
-      console.log('[RecordScreen] Recording stopped, URI:', uri);
     } catch (e: any) {
-      console.error('[RecordScreen] stopRecording ERROR:', e);
       Alert.alert('Ошибка', e.message ?? 'Не удалось остановить запись.');
       setState('idle');
     }
   }
 
-  // ── Re-record ──────────────────────────────────────────────────────────────
-
   function reRecord() {
-    console.log('[RecordScreen] reRecord called');
     setAudioUri(null);
     setElapsed(0);
     setDuration(0);
@@ -167,16 +150,12 @@ export default function RecordScreen() {
     setState('transcribing');
     const provider = getSetting(SETTINGS.PROVIDER) ?? 'groq';
     setStatusText(`Отправляю на расшифровку (${provider})…`);
-    console.log(`[RecordScreen] Starting transcription with ${provider}...`);
 
     try {
       const result = await transcribeAudio(audioUri);
-      console.log('[RecordScreen] Transcription success');
-
       const recordedAt  = startTimeRef.current ?? new Date();
       const title       = buildEntryTitle(recordedAt);
 
-      console.log('[RecordScreen] Saving to DB...');
       saveEntry({
         title,
         body:        result.text,
@@ -188,7 +167,6 @@ export default function RecordScreen() {
       });
 
       if (getSetting(SETTINGS.DELETE_AUDIO) === 'true') {
-        console.log('[RecordScreen] Deleting source audio file...');
         await FileSystem.deleteAsync(audioUri, { idempotent: true });
       }
 
@@ -201,20 +179,15 @@ export default function RecordScreen() {
       }, 1200);
 
     } catch (e: any) {
-      console.error('[RecordScreen] Transcribe ERROR:', e);
       setState('recorded');
       Alert.alert('Ошибка расшифровки', e.message ?? 'Попробуй ещё раз.');
     }
   }
 
-  // ── Big button press ───────────────────────────────────────────────────────
-
   function handleBigButton() {
     if (state === 'idle')      return startRecording();
     if (state === 'recording') return stopRecording();
   }
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
 
   const isTranscribing = state === 'transcribing' || state === 'done';
 
@@ -296,14 +269,11 @@ export default function RecordScreen() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Исправленная функция для совместимости с бандлером
 function formatTime(totalSeconds) {
   var mins = Math.floor(totalSeconds / 60);
   var secs = Math.floor(totalSeconds % 60);
-  
   var m = mins < 10 ? "0" + mins : "" + mins;
   var s = secs < 10 ? "0" + secs : "" + secs;
-  
   return m + ":" + s;
 }
 
@@ -323,14 +293,8 @@ const s = StyleSheet.create({
     shadowOpacity: 0.35, shadowRadius: 16,
     elevation: 12,
   },
-  bigBtnRecording: {
-    backgroundColor: '#B71C1C',
-    shadowColor: '#B71C1C',
-  },
-  bigBtnDone: {
-    backgroundColor: '#9E9E9E',
-    shadowColor: '#9E9E9E',
-  },
+  bigBtnRecording: { backgroundColor: '#B71C1C', shadowColor: '#B71C1C' },
+  bigBtnDone: { backgroundColor: '#9E9E9E', shadowColor: '#9E9E9E' },
   bigBtnIcon:   { fontSize: 64 },
   timerText:    { marginTop: 20, fontSize: 36, fontWeight: '200', color: '#333', letterSpacing: 2, minHeight: 44 },
   hintText:     { marginTop: 8, fontSize: 15, color: '#888', textAlign: 'center', minHeight: 22 },

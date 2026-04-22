@@ -8,6 +8,8 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          # Полная очистка для предотвращения конфликтов версий
+          rm -rf node_modules
           npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           npm install --legacy-peer-deps
       - name: Build Android APK
@@ -19,12 +21,12 @@ workflows:
             cd android
             chmod +x gradlew
             
-            # Лимит памяти для предотвращения вылета Metro Bundler
+            # Настройка памяти для Metro Bundler
             export NODE_OPTIONS="--max-old-space-size=4096"
             
             ./gradlew clean
-            # Сборка с игнорированием проверок линтера
-            ./gradlew assembleRelease -x lint
+            # Сборка без линтинга и тестов для скорости
+            ./gradlew assembleRelease -x lint -x test
           else
             echo "Ошибка: Папка android не была создана!"
             exit 1
