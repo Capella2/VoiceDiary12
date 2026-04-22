@@ -11,17 +11,22 @@ workflows:
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # 1. Генерируем папку android самым простым способом
-          # Если команда спросит про установку @expo/prebuild-config, npx сделает это сам
-          npx expo prebuild --platform android --no-interactive
+          # Проверяем версию для отладки
+          npx expo --version
           
-          # 2. Проверяем, создалась ли папка, и собираем
+          # Генерируем папку android БЕЗ флагов
+          # В новых версиях Expo это самый стабильный способ
+          npx expo prebuild --platform android
+          
+          # Проверяем результат и собираем
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
             ./gradlew assembleRelease
           else
             echo "Ошибка: Папка android не была создана!"
+            # Выведем список файлов, чтобы понять, что произошло
+            ls -R
             exit 1
           fi
     artifacts:
