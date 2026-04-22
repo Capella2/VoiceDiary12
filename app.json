@@ -49,8 +49,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "61e041b7-0f70-449f-b414-719236ff7489"
+        "projectId": "3b7495c9-c802-4458-ad08-efde85be9b24"
       }
-    }
+    },
+    "owner": "capella2"
   }
 }
