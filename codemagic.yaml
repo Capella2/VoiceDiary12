@@ -8,19 +8,18 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          # Принудительно устанавливаем версии, которые требует Expo 55
+          # Принудительно ставим версии под React 19, чтобы избежать конфликтов
           npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
-          
-          # Устанавливаем всё остальное, игнорируя конфликты типов
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # Создаем структуру папок, чтобы prebuild не падал
+          # Создаем структуру папок, чтобы не было ошибок доступа
           mkdir -p assets/images
           
-          # Генерируем android-проект
-          npx expo prebuild --platform android --no-interactive
+          # Самая простая команда без флагов
+          npx expo prebuild --platform android
           
+          # Проверка и сборка
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
