@@ -7,6 +7,7 @@ import {
   Alert, ScrollView, StyleSheet, Platform,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { router, useFocusEffect } from 'expo-router';
 import { saveEntry, getSetting } from '../../services/database';
@@ -41,6 +42,7 @@ type ScreenState = 'idle' | 'recording' | 'recorded' | 'transcribing' | 'done';
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RecordScreen() {
+  const insets = useSafeAreaInsets();
   const [state,       setState]       = useState<ScreenState>('idle');
   const [elapsed,     setElapsed]     = useState(0);   // seconds while recording
   const [duration,    setDuration]    = useState(0);   // final duration seconds
@@ -222,11 +224,12 @@ export default function RecordScreen() {
   const isTranscribing = state === 'transcribing' || state === 'done';
 
   return (
-    <ScrollView
-      style={s.container}
-      contentContainerStyle={s.content}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={{ flex: 1, backgroundColor: '#f8f8f8', paddingTop: insets.top }}>
+      <ScrollView
+        style={s.container}
+        contentContainerStyle={[s.content, { paddingBottom: Math.max(insets.bottom, 40) }]}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* ── Big record button ─────────────────────────────────── */}
       <View style={s.buttonArea}>
         <TouchableOpacity

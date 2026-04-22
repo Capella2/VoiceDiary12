@@ -6,6 +6,7 @@ import {
   View, Text, SectionList, TouchableOpacity,
   TextInput, Alert, StyleSheet, Platform, LayoutAnimation, UIManager,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { useFocusEffect, router } from 'expo-router';
 import { getAllEntries, searchEntries, deleteEntry, Entry } from '../../services/database';
 
@@ -77,10 +78,87 @@ export default function DiaryScreen() {
 // ─── Вспомогательные функции и стили (EntryCard, EmptyState, styles) ──────────
 
 function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () => void, onLongPress: () => void }) {
+  const [collapsed, setCollapsed] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [sound,     setSound]     = useState<Audio.Sound | null>(null);
+
+  const toggleCollapse = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsed(!collapsed);
+  };
+
+  async function playAudio() {
+    if (!entry.audio_path) return;
+    try {
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+        return;
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: entry.audio_path },
+        { shouldPlay: true }
+      );
+      setSound(newSound);
+      setIsPlaying(true);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+          newSound.setPositionAsync(0);
+          newSound.pauseAsync();
+        }
+      });
+    } catch (e) {
+      console.error('Playback error:', e);
+      Alert.alert('Ошибка', 'Не удалось воспроизвести аудио.');
+    }
+  }
+
+  // Cleanup sound on unmount
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (sound) {
+          sound.unloadAsync();
+        }
+      };
+    }, [sound])
+  );
+
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} onLongPress={onLongPress}>
-      <Text style={s.cardTitle}>{entry.title}</Text>
-      <Text style={s.cardBody} numberOfLines={2}>{entry.body}</Text>
+    <TouchableOpacity 
+      style={s.card} 
+      onPress={onPress} 
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
+      <View style={s.cardHeader}>
+        <TouchableOpacity style={s.cardTitleContainer} onPress={toggleCollapse}>
+          <Text style={s.cardTitle}>{entry.title}</Text>
+          <Text style={s.collapseIcon}>{collapsed ? '▼' : '▲'}</Text>
+        </TouchableOpacity>
+        
+        {entry.audio_path && (
+          <TouchableOpacity style={s.playBtn} onPress={playAudio}>
+            <Text style={s.playBtnIcon}>{isPlaying ? '⏸' : '▶️'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {!collapsed && (
+        <Text style={s.cardBody}>{entry.body}</Text>
+      )}
+      
+      {collapsed && (
+        <Text style={s.cardBody} numberOfLines={1}>{entry.body}</Text>
+      )}
     </TouchableOpacity>
   );
 }
@@ -98,7 +176,12 @@ const s = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '800' },
   sectionHeader: { padding: 15, backgroundColor: '#eee', borderRadius: 8, marginHorizontal: 10, marginTop: 10 },
   sectionTitle: { fontWeight: '700', color: '#555' },
-  card: { padding: 16, backgroundColor: '#fff', marginHorizontal: 10, marginVertical: 5, borderRadius: 10 },
-  cardTitle: { fontWeight: '700', fontSize: 16 },
-  cardBody: { fontSize: 14, color: '#666', marginTop: 4 }
+  card: { padding: 16, backgroundColor: '#fff', marginHorizontal: 10, marginVertical: 5, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  cardTitleContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  cardTitle: { fontWeight: '700', fontSize: 16, flexShrink: 1 },
+  collapseIcon: { fontSize: 12, color: '#999', marginLeft: 8 },
+  playBtn: { padding: 8, backgroundColor: '#f0f0f0', borderRadius: 20, marginLeft: 10 },
+  playBtnIcon: { fontSize: 16 },
+  cardBody: { fontSize: 14, color: '#666', marginTop: 4, lineHeight: 20 }
 });

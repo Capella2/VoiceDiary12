@@ -6,15 +6,62 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   Alert, Share, StyleSheet, Platform, ActivityIndicator,
 } from 'react-native';
+import { Audio } from 'expo-av';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { getEntryById, updateEntryTitle, deleteEntry, Entry } from '../../services/database';
 
 export default function EntryDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { id }            = useLocalSearchParams<{ id: string }>();
   const [entry,     setEntry]     = useState<Entry | null>(null);
   const [title,     setTitle]     = useState('');
   const [editMode,  setEditMode]  = useState(false);
   const [loading,   setLoading]   = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [sound,     setSound]     = useState<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  async function playAudio() {
+    if (!entry?.audio_path) return;
+    try {
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+        return;
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: entry.audio_path },
+        { shouldPlay: true }
+      );
+      setSound(newSound);
+      setIsPlaying(true);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+          newSound.setPositionAsync(0);
+          newSound.pauseAsync();
+        }
+      });
+    } catch (e) {
+      console.error('Playback error:', e);
+      Alert.alert('Ошибка', 'Не удалось воспроизвести аудио.');
+    }
+  }
 
   useEffect(() => {
     const found = getEntryById(Number(id));
@@ -127,7 +174,14 @@ export default function EntryDetailScreen() {
       </ScrollView>
 
       {/* ── Action bar ─────────────────────────────────────────── */}
-      <View style={s.actionBar}>
+      <View style={[s.actionBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {entry.audio_path && (
+          <ActionButton 
+            icon={isPlaying ? "⏸" : "🔊"} 
+            label={isPlaying ? "Пауза" : "Слушать"} 
+            onPress={playAudio} 
+          />
+        )}
         <ActionButton icon="📋" label="Копировать" onPress={() => {
           // Clipboard requires expo-clipboard — use Share as fallback
           Share.share({ message: entry.body });
