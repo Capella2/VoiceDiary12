@@ -8,23 +8,22 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          # Фиксируем версии под требования Expo 55
           npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # Генерация нативного проекта с вашими новыми иконками
+          # Генерация нативного проекта
           npx expo prebuild --platform android
           
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
             
-            # Увеличиваем лимит памяти для сборки JS-бандла
+            # Лимит памяти для предотвращения вылета Metro Bundler
             export NODE_OPTIONS="--max-old-space-size=4096"
             
             ./gradlew clean
-            # Сборка APK с игнорированием второстепенных ошибок
+            # Сборка с игнорированием проверок линтера
             ./gradlew assembleRelease -x lint
           else
             echo "Ошибка: Папка android не была создана!"

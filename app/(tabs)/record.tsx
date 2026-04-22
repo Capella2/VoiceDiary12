@@ -91,7 +91,6 @@ export default function RecordScreen() {
   async function startRecording() {
     console.log('[RecordScreen] startRecording called');
     try {
-      // Request microphone permission
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
         console.warn('[RecordScreen] Microphone permission not granted');
@@ -174,11 +173,9 @@ export default function RecordScreen() {
       const result = await transcribeAudio(audioUri);
       console.log('[RecordScreen] Transcription success');
 
-      // Build title from recording start time
       const recordedAt  = startTimeRef.current ?? new Date();
       const title       = buildEntryTitle(recordedAt);
 
-      // Save to database
       console.log('[RecordScreen] Saving to DB...');
       saveEntry({
         title,
@@ -190,7 +187,6 @@ export default function RecordScreen() {
         model:       result.model,
       });
 
-      // Delete audio file if setting is enabled
       if (getSetting(SETTINGS.DELETE_AUDIO) === 'true') {
         console.log('[RecordScreen] Deleting source audio file...');
         await FileSystem.deleteAsync(audioUri, { idempotent: true });
@@ -199,7 +195,6 @@ export default function RecordScreen() {
       setState('done');
       setStatusText('Готово!');
 
-      // Navigate to diary tab after short delay
       setTimeout(() => {
         reRecord();
         router.replace('/');
@@ -230,7 +225,6 @@ export default function RecordScreen() {
         contentContainerStyle={[s.content, { paddingBottom: Math.max(insets.bottom, 40) }]}
         keyboardShouldPersistTaps="handled"
       >
-      {/* ── Big record button ─────────────────────────────────── */}
       <View style={s.buttonArea}>
         <TouchableOpacity
           style={[
@@ -247,7 +241,6 @@ export default function RecordScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Timer / duration */}
         <Text style={s.timerText}>
           {state === 'recording'
             ? formatTime(elapsed)
@@ -256,7 +249,6 @@ export default function RecordScreen() {
             : ''}
         </Text>
 
-        {/* Hint under button */}
         <Text style={s.hintText}>
           {state === 'idle'      ? 'Нажми чтобы начать запись'  : ''}
           {state === 'recording' ? 'Нажми чтобы остановить'     : ''}
@@ -266,11 +258,8 @@ export default function RecordScreen() {
         </Text>
       </View>
 
-      {/* ── Controls after recording ──────────────────────────── */}
       {(state === 'recorded' || isTranscribing) && (
         <View style={s.controls}>
-
-          {/* Transcribe button */}
           <TouchableOpacity
             style={[s.transcribeBtn, isTranscribing && s.transcriBtnDisabled]}
             onPress={transcribe}
@@ -283,7 +272,6 @@ export default function RecordScreen() {
             }
           </TouchableOpacity>
 
-          {/* Re-record button */}
           {!isTranscribing && (
             <TouchableOpacity
               style={s.reRecordBtn}
@@ -296,7 +284,6 @@ export default function RecordScreen() {
         </View>
       )}
 
-      {/* ── Provider info ─────────────────────────────────────── */}
       <View style={s.providerBadge}>
         <Text style={s.providerText}>
           Провайдер: {currentProvider}
@@ -309,10 +296,15 @@ export default function RecordScreen() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatTime(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-  const s = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+// Исправленная функция для совместимости с бандлером
+function formatTime(totalSeconds) {
+  var mins = Math.floor(totalSeconds / 60);
+  var secs = Math.floor(totalSeconds % 60);
+  
+  var m = mins < 10 ? "0" + mins : "" + mins;
+  var s = secs < 10 ? "0" + secs : "" + secs;
+  
+  return m + ":" + s;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -322,9 +314,7 @@ const ACCENT = '#E53935';
 const s = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#f8f8f8' },
   content:      { flexGrow: 1, alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
-
   buttonArea:   { alignItems: 'center', marginBottom: 48 },
-
   bigBtn: {
     width: 160, height: 160, borderRadius: 80,
     backgroundColor: ACCENT,
@@ -342,12 +332,9 @@ const s = StyleSheet.create({
     shadowColor: '#9E9E9E',
   },
   bigBtnIcon:   { fontSize: 64 },
-
   timerText:    { marginTop: 20, fontSize: 36, fontWeight: '200', color: '#333', letterSpacing: 2, minHeight: 44 },
   hintText:     { marginTop: 8, fontSize: 15, color: '#888', textAlign: 'center', minHeight: 22 },
-
   controls:     { width: '100%', gap: 12 },
-
   transcribeBtn: {
     backgroundColor: '#1E88E5', borderRadius: 14,
     padding: 18, alignItems: 'center',
@@ -356,10 +343,8 @@ const s = StyleSheet.create({
   },
   transcriBtnDisabled: { opacity: 0.65 },
   transcriBtnText:     { color: '#fff', fontSize: 17, fontWeight: '700' },
-
   reRecordBtn:  { borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff' },
   reRecordText: { fontSize: 15, color: '#555', fontWeight: '600' },
-
   providerBadge: { marginTop: 'auto', paddingTop: 24 },
   providerText:  { fontSize: 12, color: '#bbb', textAlign: 'center' },
 });
