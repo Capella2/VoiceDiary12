@@ -8,23 +8,19 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          # 1. Фиксируем версию типов React, чтобы избежать конфликта ERESOLVE
-          npm install @types/react@~18.2.0 --save-exact --legacy-peer-deps
+          # Принудительно устанавливаем версии, которые требует Expo 55
+          npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           
-          # 2. Устанавливаем остальные зависимости
+          # Устанавливаем всё остальное, игнорируя конфликты типов
           npm install --legacy-peer-deps
-          
-          # 3. Проверяем соответствие версий Expo
-          npx expo install --check
       - name: Build Android APK
         script: |
-          # 1. Создаем пустые папки для ассетов, если их нет, чтобы prebuild не падал
+          # Создаем структуру папок, чтобы prebuild не падал
           mkdir -p assets/images
           
-          # 2. Генерируем нативный проект android
+          # Генерируем android-проект
           npx expo prebuild --platform android --no-interactive
           
-          # 3. Собираем APK
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
@@ -39,4 +35,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - YOUR_EMAIL@EXAMPLE.COM # Замените на вашу почту
+          - capella2@ukr.net
