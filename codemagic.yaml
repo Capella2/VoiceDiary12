@@ -8,23 +8,30 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          # 1. Фиксируем версию типов React, чтобы избежать конфликта ERESOLVE
+          npm install @types/react@~18.2.0 --save-exact --legacy-peer-deps
+          
+          # 2. Устанавливаем остальные зависимости
           npm install --legacy-peer-deps
-          # Исправление конфликтов версий
-          npx expo install --fix
+          
+          # 3. Проверяем соответствие версий Expo
+          npx expo install --check
       - name: Build Android APK
         script: |
-          # Генерируем папку android
-          npx expo prebuild --platform android
+          # 1. Создаем пустые папки для ассетов, если их нет, чтобы prebuild не падал
+          mkdir -p assets/images
           
+          # 2. Генерируем нативный проект android
+          npx expo prebuild --platform android --no-interactive
+          
+          # 3. Собираем APK
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
-            # Очистка перед сборкой
             ./gradlew clean
-            # Сборка
             ./gradlew assembleRelease
           else
-            echo "Ошибка: Папка android не создана!"
+            echo "Ошибка: Папка android не была создана!"
             exit 1
           fi
     artifacts:
@@ -32,4 +39,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - capella2@ukr.net
+          - YOUR_EMAIL@EXAMPLE.COM # Замените на вашу почту
