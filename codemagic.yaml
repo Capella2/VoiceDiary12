@@ -9,24 +9,22 @@ workflows:
       - name: Install dependencies
         script: |
           npm install --legacy-peer-deps
+          # Исправление конфликтов версий
+          npx expo install --fix
       - name: Build Android APK
         script: |
-          # Проверяем версию для отладки
-          npx expo --version
-          
-          # Генерируем папку android БЕЗ флагов
-          # В новых версиях Expo это самый стабильный способ
+          # Генерируем папку android
           npx expo prebuild --platform android
           
-          # Проверяем результат и собираем
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
+            # Очистка перед сборкой
+            ./gradlew clean
+            # Сборка
             ./gradlew assembleRelease
           else
-            echo "Ошибка: Папка android не была создана!"
-            # Выведем список файлов, чтобы понять, что произошло
-            ls -R
+            echo "Ошибка: Папка android не создана!"
             exit 1
           fi
     artifacts:
