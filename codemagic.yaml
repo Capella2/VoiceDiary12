@@ -1,35 +1,25 @@
 workflows:
   android-workflow:
     name: Android Release APK
-    max_build_duration: 60
     instance_type: mac_mini_m1
-    environment:
-      node: latest
     scripts:
       - name: Install dependencies
         script: |
-          # Полная очистка для предотвращения конфликтов версий
-          rm -rf node_modules
-          npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # Генерация нативного проекта
+          # Чистим временные файлы Metro
+          rm -rf $TMPDIR/metro-*
+          rm -rf $TMPDIR/react-*
+          
           npx expo prebuild --platform android
           
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
-            
-            # Настройка памяти для Metro Bundler
-            export NODE_OPTIONS="--max-old-space-size=4096"
-            
             ./gradlew clean
-            # Сборка без линтинга и тестов для скорости
-            ./gradlew assembleRelease -x lint -x test
-          else
-            echo "Ошибка: Папка android не была создана!"
-            exit 1
+            export NODE_OPTIONS="--max-old-space-size=4096"
+            ./gradlew assembleRelease -x lint
           fi
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
