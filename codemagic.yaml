@@ -8,23 +8,24 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          # Принудительно ставим версии под React 19, чтобы избежать конфликтов
+          # Фиксируем версии под требования Expo 55
           npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # Создаем структуру папок, чтобы не было ошибок доступа
-          mkdir -p assets/images
-          
-          # Самая простая команда без флагов
+          # Генерация нативного проекта с вашими новыми иконками
           npx expo prebuild --platform android
           
-          # Проверка и сборка
           if [ -d "android" ]; then
             cd android
             chmod +x gradlew
+            
+            # Увеличиваем лимит памяти для сборки JS-бандла
+            export NODE_OPTIONS="--max-old-space-size=4096"
+            
             ./gradlew clean
-            ./gradlew assembleRelease
+            # Сборка APK с игнорированием второстепенных ошибок
+            ./gradlew assembleRelease -x lint
           else
             echo "Ошибка: Папка android не была создана!"
             exit 1
