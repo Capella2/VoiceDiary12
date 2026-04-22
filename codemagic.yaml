@@ -11,12 +11,18 @@ workflows:
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # Если вы используете Expo (судя по app.json):
-          npx expo export --platform android
-          cd android && ./gradlew assembleRelease
+          # 1. Принимаем лицензии Android SDK
+          yes | sdkmanager --licenses || true
+          
+          # 2. Генерируем папку android (Managed -> Bare)
+          npx expo prebuild --platform android --no-interactive
+          
+          # 3. Переходим в папку и собираем релизный APK
+          cd android
+          ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
       email:
         recipients:
-          - YOUR_EMAIL@EXAMPLE.COM # Замените на свою почту
+          - capella2@ukr.net # Замените на свой e-mail, чтобы получить файл
