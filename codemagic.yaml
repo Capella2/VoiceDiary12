@@ -11,18 +11,20 @@ workflows:
           npm install --legacy-peer-deps
       - name: Build Android APK
         script: |
-          # 1. Принимаем лицензии Android SDK
+          # 1. Автоматический поиск и принятие лицензий
           yes | sdkmanager --licenses || true
           
-          # 2. Генерируем папку android (Managed -> Bare)
-          npx expo prebuild --platform android --no-interactive
+          # 2. Очистка и генерация папки android
+          # Мы добавили --force, чтобы если папка была создана с ошибкой, она пересоздалась
+          npx expo prebuild --platform android --force
           
-          # 3. Переходим в папку и собираем релизный APK
+          # 3. Сборка самого APK
           cd android
+          chmod +x gradlew
           ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
       email:
         recipients:
-          - capella2@ukr.net # Замените на свой e-mail, чтобы получить файл
+          - capella2@ukr.net
