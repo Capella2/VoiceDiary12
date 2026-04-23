@@ -1,29 +1,43 @@
+# codemagic.yaml
 workflows:
   android-workflow:
     name: Android Release APK
-    instance_type: linux_m2
     max_build_duration: 60
+    instance_type: mac_mini_m1
     environment:
-      node: 20
-      java: 17
-    cache:
-      cache_paths:
-        - $CM_BUILD_DIR/node_modules
-        - $HOME/.gradle/caches
+      node: latest
+      groups:
+        - google_play # Если есть ключи, иначе можно оставить пустым
     scripts:
       - name: Install dependencies
         script: |
+          # Глубокая очистка и установка под React 19
+          rm -rf node_modules
+          npm install react@19.2.0 react-dom@19.2.0 @types/react@~19.2.0 --save-exact --legacy-peer-deps
           npm install --legacy-peer-deps
-      - name: Prebuild Android project
-        script: |
-          npx expo prebuild --platform android --no-install
       - name: Build Android APK
         script: |
-          cd android
-          chmod +x gradlew
-          ./gradlew clean
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          ./gradlew assembleRelease -x lint
+          # Очистка кэша Metro и временных файлов
+          rm -rf $TMPDIR/metro-*
+          mkdir -p assets/images
+          
+          # Предварительная сборка нативного проекта
+          npx expo prebuild --platform android
+          
+          if [ -d "android" ]; then
+            cd android
+            chmod +x gradlew
+            
+            # Увеличение памяти для предотвращения ошибок 'command node finished with non-zero exit value 1'
+            export NODE_OPTIONS="--max-old-space-size=4096"
+            
+            ./gradlew clean
+            # Сборка без проверки lint для успешного прохождения билда
+            ./gradlew assembleRelease -x lint
+          else
+            echo "Ошибка: Папка android не была создана!"
+            exit 1
+          fi
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:

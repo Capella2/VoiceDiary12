@@ -131,7 +131,7 @@ export default function RecordScreen() {
       setState('recorded');
       Alert.alert(
         'Ошибка расшифровки',
-        'Не удалось расшифровать запись. Сохранить её без текста, чтобы попробовать позже?',
+        'Не удалось расшифровать запись. Сохранить её без текста?',
         [
           { text: 'Отмена', style: 'cancel' },
           {
@@ -148,7 +148,7 @@ export default function RecordScreen() {
                 model: '-',
               });
               setState('done');
-              setStatusText('Сохранено оффлайн');
+              setStatusText('Сохранено без текста');
               setTimeout(() => {
                 setState('idle');
                 router.replace('/');
@@ -198,11 +198,14 @@ export default function RecordScreen() {
   );
 }
 
+// Вспомогательная функция вынесена наружу для стабильности бандлера
 function formatTime(secs) {
   if (!secs) return "00:00";
   var m = Math.floor(secs / 60);
   var s = Math.floor(secs % 60);
-  return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+  var displayM = m < 10 ? "0" + m : m;
+  var displayS = s < 10 ? "0" + s : s;
+  return displayM + ":" + displayS;
 }
 
 const s = StyleSheet.create({
