@@ -187,6 +187,13 @@ export function updateEntryTitle(id: number, title: string): void {
   );
 }
 
+export function updateEntryBody(id: number, body: string): void {
+  getDb().runSync(
+    `UPDATE entries SET body = ? WHERE id = ?`,
+    [body, id]
+  );
+}
+
 export async function deleteEntry(id: number): Promise<void> {
   const entry = getEntryById(id);
   if (entry && entry.audio_path) {

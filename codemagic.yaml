@@ -1,26 +1,29 @@
 workflows:
   android-workflow:
     name: Android Release APK
-    instance_type: mac_mini_m1
+    instance_type: linux_m2
+    max_build_duration: 60
+    environment:
+      node: 20
+      java: 17
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/node_modules
+        - $HOME/.gradle/caches
     scripts:
       - name: Install dependencies
         script: |
           npm install --legacy-peer-deps
+      - name: Prebuild Android project
+        script: |
+          npx expo prebuild --platform android --no-install
       - name: Build Android APK
         script: |
-          # Чистим временные файлы Metro
-          rm -rf $TMPDIR/metro-*
-          rm -rf $TMPDIR/react-*
-          
-          npx expo prebuild --platform android
-          
-          if [ -d "android" ]; then
-            cd android
-            chmod +x gradlew
-            ./gradlew clean
-            export NODE_OPTIONS="--max-old-space-size=4096"
-            ./gradlew assembleRelease -x lint
-          fi
+          cd android
+          chmod +x gradlew
+          ./gradlew clean
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          ./gradlew assembleRelease -x lint
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:

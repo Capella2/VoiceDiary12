@@ -153,11 +153,15 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
       </View>
 
       {!collapsed && (
-        <Text style={s.cardBody}>{entry.body}</Text>
+        <Text style={[s.cardBody, !entry.body && { fontStyle: 'italic', color: '#999' }]}>
+          {entry.body || '(Ожидает расшифровки...)'}
+        </Text>
       )}
       
       {collapsed && (
-        <Text style={s.cardBody} numberOfLines={1}>{entry.body}</Text>
+        <Text style={[s.cardBody, !entry.body && { fontStyle: 'italic', color: '#999' }]} numberOfLines={1}>
+          {entry.body || '(Ожидает расшифровки...)'}
+        </Text>
       )}
     </TouchableOpacity>
   );

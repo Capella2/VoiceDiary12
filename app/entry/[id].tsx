@@ -9,7 +9,9 @@ import {
 import { Audio } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { getEntryById, updateEntryTitle, deleteEntry, Entry } from '../../services/database';
+import { getEntryById, updateEntryTitle, updateEntryBody, deleteEntry, Entry, getSetting } from '../../services/database';
+import { transcribeAudio, SETTINGS } from '../../services/transcription';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function EntryDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -19,6 +21,7 @@ export default function EntryDetailScreen() {
   const [editMode,  setEditMode]  = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [sound,     setSound]     = useState<Audio.Sound | null>(null);
 
   useEffect(() => {
@@ -28,6 +31,26 @@ export default function EntryDetailScreen() {
       }
     };
   }, [sound]);
+
+  async function handleTranscribe() {
+    if (!entry?.audio_path) return;
+    setIsTranscribing(true);
+    try {
+      const result = await transcribeAudio(entry.audio_path);
+      updateEntryBody(entry.id, result.text);
+      setEntry({ ...entry, body: result.text, provider: result.provider, model: result.model });
+      Alert.alert('Готово', 'Запись успешно расшифрована.');
+      
+      if (getSetting(SETTINGS.DELETE_AUDIO) === 'true') {
+        await FileSystem.deleteAsync(entry.audio_path, { idempotent: true });
+        setEntry(prev => prev ? { ...prev, audio_path: null } : null);
+      }
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.message ?? 'Не удалось расшифровать.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
 
   async function playAudio() {
     if (!entry?.audio_path) return;
@@ -168,7 +191,24 @@ export default function EntryDetailScreen() {
 
         {/* ── Body ───────────────────────────────────────────── */}
         <View style={s.bodyCard}>
-          <Text style={s.bodyText} selectable>{entry.body}</Text>
+          {entry.body ? (
+            <Text style={s.bodyText} selectable>{entry.body}</Text>
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <Text style={{ color: '#999', fontStyle: 'italic', marginBottom: 20 }}>Текст пока не расшифрован</Text>
+              <TouchableOpacity 
+                style={[s.mainTranscribeBtn, isTranscribing && { opacity: 0.6 }]} 
+                onPress={handleTranscribe}
+                disabled={isTranscribing}
+              >
+                {isTranscribing ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>✨ Расшифровать сейчас</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
       </ScrollView>
@@ -238,6 +278,7 @@ const s = StyleSheet.create({
 
   bodyCard:  { backgroundColor: '#fff', borderRadius: 14, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   bodyText:  { fontSize: 16, color: '#222', lineHeight: 26 },
+  mainTranscribeBtn: { backgroundColor: '#1E88E5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
 
   actionBar:   { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: Platform.OS === 'ios' ? 28 : 12, paddingTop: 12 },
   actionBtn:   { flex: 1, alignItems: 'center', gap: 4 },

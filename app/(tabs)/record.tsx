@@ -129,7 +129,34 @@ export default function RecordScreen() {
       }, 1000);
     } catch (e) {
       setState('recorded');
-      Alert.alert('Ошибка', 'Попробуйте еще раз.');
+      Alert.alert(
+        'Ошибка расшифровки',
+        'Не удалось расшифровать запись. Сохранить её без текста, чтобы попробовать позже?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Сохранить черновик',
+            onPress: () => {
+              const recordedAt = startTimeRef.current ?? new Date();
+              saveEntry({
+                title: buildEntryTitle(recordedAt),
+                body: '',
+                recorded_at: recordedAt.toISOString(),
+                duration_sec: duration,
+                audio_path: audioUri,
+                provider: 'offline',
+                model: '-',
+              });
+              setState('done');
+              setStatusText('Сохранено оффлайн');
+              setTimeout(() => {
+                setState('idle');
+                router.replace('/');
+              }, 1000);
+            }
+          }
+        ]
+      );
     }
   }
 
