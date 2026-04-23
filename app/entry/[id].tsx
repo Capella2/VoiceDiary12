@@ -18,7 +18,9 @@ export default function EntryDetailScreen() {
   const { id }            = useLocalSearchParams<{ id: string }>();
   const [entry,     setEntry]     = useState<Entry | null>(null);
   const [title,     setTitle]     = useState('');
+  const [body,      setBody]      = useState('');
   const [editMode,  setEditMode]  = useState(false);
+  const [editBodyMode, setEditBodyMode] = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -91,6 +93,7 @@ export default function EntryDetailScreen() {
     if (found) {
       setEntry(found);
       setTitle(found.title);
+      setBody(found.body);
     }
     setLoading(false);
   }, [id]);
@@ -105,6 +108,13 @@ export default function EntryDetailScreen() {
     updateEntryTitle(entry.id, title.trim());
     setEntry({ ...entry, title: title.trim() });
     setEditMode(false);
+  }
+
+  function saveBody() {
+    if (!entry) return;
+    updateEntryBody(entry.id, body.trim());
+    setEntry({ ...entry, body: body.trim() });
+    setEditBodyMode(false);
   }
 
   function handleDelete() {
@@ -191,8 +201,21 @@ export default function EntryDetailScreen() {
 
         {/* ── Body ───────────────────────────────────────────── */}
         <View style={s.bodyCard}>
-          {entry.body ? (
-            <Text style={s.bodyText} selectable>{entry.body}</Text>
+          {entry.body || editBodyMode ? (
+            editBodyMode ? (
+              <TextInput
+                style={[s.bodyText, s.bodyInput]}
+                value={body}
+                onChangeText={setBody}
+                onBlur={saveBody}
+                multiline
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setEditBodyMode(true)} activeOpacity={0.7}>
+                <Text style={s.bodyText} selectable>{entry.body}</Text>
+              </TouchableOpacity>
+            )
           ) : (
             <View style={{ alignItems: 'center', paddingVertical: 20 }}>
               <Text style={{ color: '#999', fontStyle: 'italic', marginBottom: 20 }}>Текст пока не расшифрован</Text>
@@ -278,6 +301,7 @@ const s = StyleSheet.create({
 
   bodyCard:  { backgroundColor: '#fff', borderRadius: 14, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   bodyText:  { fontSize: 16, color: '#222', lineHeight: 26 },
+  bodyInput: { borderBottomWidth: 1, borderBottomColor: '#eee', padding: 0, textAlignVertical: 'top' },
   mainTranscribeBtn: { backgroundColor: '#1E88E5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
 
   actionBar:   { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: Platform.OS === 'ios' ? 28 : 12, paddingTop: 12 },
