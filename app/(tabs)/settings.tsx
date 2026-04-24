@@ -7,6 +7,7 @@ import {
   Switch, Alert, ActivityIndicator, StyleSheet, Platform,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+const { StorageAccessFramework } = FileSystem;
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from 'expo-router';
@@ -149,20 +150,23 @@ export default function SettingsScreen() {
       const fileName = 'VoiceDiary_Backup.json';
 
       // ─── Android: Прямое сохранение в папку через SAF ───
-      if (Platform.OS === 'android') {
-        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-        
-        if (permissions.granted) {
-          // Создаем файл в выбранной директории
-          const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-            permissions.directoryUri,
-            'VoiceDiary_Backup',
-            'application/json'
-          );
+      if (Platform.OS === 'android' && StorageAccessFramework) {
+        try {
+          const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
           
-          await FileSystem.writeAsStringAsync(fileUri, jsonString, { encoding: FileSystem.EncodingType.UTF8 });
-          Alert.alert('Готово', 'Бэкап успешно сохранен в выбранную папку');
-          return;
+          if (permissions.granted) {
+            const fileUri = await StorageAccessFramework.createFileAsync(
+              permissions.directoryUri,
+              'VoiceDiary_Backup',
+              'application/json'
+            );
+            
+            await FileSystem.writeAsStringAsync(fileUri, jsonString, { encoding: FileSystem.EncodingType.UTF8 });
+            Alert.alert('Готово', 'Бэкап успешно сохранен в выбранную папку');
+            return;
+          }
+        } catch (safErr) {
+          console.warn('SAF error, falling back to Sharing:', safErr);
         }
       }
 
