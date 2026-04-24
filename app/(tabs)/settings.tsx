@@ -6,7 +6,7 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   Switch, Alert, ActivityIndicator, StyleSheet, Platform,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 const { StorageAccessFramework } = FileSystem;
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
