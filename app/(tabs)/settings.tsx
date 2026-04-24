@@ -140,21 +140,29 @@ export default function SettingsScreen() {
     setIsExporting(true);
     try {
       const data = getAllEntriesForBackup();
-      if (data.length === 0) {
+      if (!data || data.length === 0) {
         Alert.alert('Пусто', 'Нет записей для экспорта');
         return;
       }
-      const fileUri = FileSystem.cacheDirectory + 'VoiceDiary_Backup.json';
+      
+      const fileName = 'VoiceDiary_Backup.json';
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      console.log('[Backup] Writing to:', fileUri);
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data, null, 2));
       
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Сохранить бэкап' });
+        await Sharing.shareAsync(fileUri, { 
+          mimeType: 'application/json', 
+          dialogTitle: 'Сохранить бэкап',
+          UTI: 'public.json' // Для iOS
+        });
       } else {
         Alert.alert('Ошибка', 'Обмен файлами недоступен на этом устройстве');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Export error:', e);
-      Alert.alert('Ошибка экспорта', 'Не удалось создать файл бэкапа');
+      Alert.alert('Ошибка экспорта', `Не удалось создать файл.\n\nДетали: ${e.message}`);
     } finally {
       setIsExporting(false);
     }
