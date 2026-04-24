@@ -194,6 +194,46 @@ export function updateEntryBody(id: number, body: string): void {
   );
 }
 
+/**
+ * Получить все записи для бэкапа (включая все поля)
+ */
+export function getAllEntriesForBackup(): Entry[] {
+  return getDb().getAllSync<Entry>(`SELECT * FROM entries`);
+}
+
+/**
+ * Импорт записей из бэкапа
+ */
+export function importEntries(entries: any[]): number {
+  const db = getDb();
+  let count = 0;
+  
+  db.withTransactionSync(() => {
+    for (const item of entries) {
+      // Проверяем наличие обязательных полей
+      if (!item.title || !item.recorded_at) continue;
+
+      db.runSync(
+        `INSERT OR IGNORE INTO entries (title, body, recorded_at, duration_sec, audio_path, provider, model, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item.title,
+          item.body || '',
+          item.recorded_at,
+          item.duration_sec || 0,
+          null, // Аудиофайлы не переносятся в текстовом бэкапе
+          item.provider || 'backup',
+          item.model || '-',
+          item.created_at || new Date().toISOString()
+        ]
+      );
+      count++;
+    }
+  });
+  
+  return count;
+}
+
 export async function deleteEntry(id: number): Promise<void> {
   const entry = getEntryById(id);
   if (entry && entry.audio_path) {

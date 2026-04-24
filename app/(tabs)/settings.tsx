@@ -6,8 +6,11 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   Switch, Alert, ActivityIndicator, StyleSheet, Platform,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from 'expo-router';
-import { getSetting, saveSetting, deleteAllAudioFiles } from '../../services/database';
+import { getSetting, saveSetting, deleteAllAudioFiles, getAllEntriesForBackup, importEntries } from '../../services/database';
 import { SETTINGS, Provider } from '../../services/transcription';
 import { testGroqConnection } from '../../services/aiProviders/groq';
 import { testGeminiConnection } from '../../services/aiProviders/gemini';
@@ -50,6 +53,8 @@ export default function SettingsScreen() {
   const [showKey,      setShowKey]      = useState(false);
   const [testing,      setTesting]      = useState(false);
   const [saved,        setSaved]        = useState(false);
+  const [isExporting,  setIsExporting]  = useState(false);
+  const [isImporting,  setIsImporting]  = useState(false);
 
   // Load settings when screen comes into focus
   useFocusEffect(
@@ -129,6 +134,53 @@ export default function SettingsScreen() {
         }
       ]
     );
+  }
+
+  async function handleExportBackup() {
+    setIsExporting(true);
+    try {
+      const data = getAllEntriesForBackup();
+      if (data.length === 0) {
+        Alert.alert('Пусто', 'Нет записей для экспорта');
+        return;
+      }
+      const fileUri = FileSystem.cacheDirectory + 'VoiceDiary_Backup.json';
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data, null, 2));
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Сохранить бэкап' });
+      } else {
+        Alert.alert('Ошибка', 'Обмен файлами недоступен на этом устройстве');
+      }
+    } catch (e) {
+      console.error('Export error:', e);
+      Alert.alert('Ошибка экспорта', 'Не удалось создать файл бэкапа');
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handleImportBackup() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
+      if (res.canceled) return;
+
+      setIsImporting(true);
+      const content = await FileSystem.readAsStringAsync(res.assets[0].uri);
+      const data = JSON.parse(content);
+
+      if (!Array.isArray(data)) {
+        throw new Error('Неверный формат файла бэкапа');
+      }
+
+      const count = importEntries(data);
+      Alert.alert('Успех', `Импортировано новых записей: ${count}`);
+    } catch (e) {
+      console.error('Import error:', e);
+      Alert.alert('Ошибка импорта', 'Не удалось прочитать или загрузить файл бэкапа. Убедитесь, что это корректный JSON-файл VoiceDiary.');
+    } finally {
+      setIsImporting(false);
+    }
   }
 
   // Active API key and setter for currently selected provider
@@ -289,6 +341,30 @@ export default function SettingsScreen() {
         </Text>
       </TouchableOpacity>
 
+      {/* ── Backup & Restore ─────────────────────────────────────── */}
+      <SectionHeader title="Данные (Текст)" />
+      
+      <View style={{ gap: 10, marginTop: 8 }}>
+        <TouchableOpacity style={s.secondaryBtn} onPress={handleExportBackup} disabled={isExporting}>
+          <Text style={s.secondaryBtnText}>
+            {isExporting ? 'Создание...' : '📤 Экспорт заметок (JSON)'}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={s.secondaryBtn} onPress={handleImportBackup} disabled={isImporting}>
+          <Text style={s.secondaryBtnText}>
+            {isImporting ? 'Загрузка...' : '📥 Импорт из файла'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── About ────────────────────────────────────────────────── */}
+      <SectionHeader title="О программе" />
+      <View style={s.aboutBox}>
+        <Text style={s.aboutText}>VoiceDiary v1.0.0</Text>
+        <Text style={s.aboutText}>Author: Capt. Stoyev Igor</Text>
+      </View>
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -346,4 +422,10 @@ const s = StyleSheet.create({
   saveBtn:         { marginTop: 24, backgroundColor: ACCENT, borderRadius: 14, padding: 16, alignItems: 'center' },
   saveBtnSaved:    { backgroundColor: '#43A047' },
   saveBtnText:     { color: '#fff', fontWeight: '700', fontSize: 16 },
+
+  secondaryBtn:     { padding: 14, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff', marginTop: 4 },
+  secondaryBtnText: { color: '#444', fontSize: 14, fontWeight: '600' },
+  
+  aboutBox:         { padding: 16, alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, marginTop: 8, borderWidth: 1, borderColor: '#eee' },
+  aboutText:        { fontSize: 14, color: '#666', fontWeight: '500', lineHeight: 20 },
 });
