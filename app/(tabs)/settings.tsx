@@ -145,24 +145,43 @@ export default function SettingsScreen() {
         return;
       }
       
+      const jsonString = JSON.stringify(data, null, 2);
       const fileName = 'VoiceDiary_Backup.json';
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-      
-      console.log('[Backup] Writing to:', fileUri);
-      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data, null, 2));
+
+      // ─── Android: Прямое сохранение в папку через SAF ───
+      if (Platform.OS === 'android') {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (permissions.granted) {
+          // Создаем файл в выбранной директории
+          const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            'VoiceDiary_Backup',
+            'application/json'
+          );
+          
+          await FileSystem.writeAsStringAsync(fileUri, jsonString, { encoding: FileSystem.EncodingType.UTF8 });
+          Alert.alert('Готово', 'Бэкап успешно сохранен в выбранную папку');
+          return;
+        }
+      }
+
+      // ─── Запасной вариант / iOS: Окно "Поделиться" ───
+      const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tempUri, jsonString);
       
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { 
+        await Sharing.shareAsync(tempUri, { 
           mimeType: 'application/json', 
-          dialogTitle: 'Сохранить бэкап',
-          UTI: 'public.json' // Для iOS
+          dialogTitle: 'Сохранить бэкап' 
         });
       } else {
-        Alert.alert('Ошибка', 'Обмен файлами недоступен на этом устройстве');
+        Alert.alert('Ошибка', 'Обмен файлами недоступен');
       }
+
     } catch (e: any) {
       console.error('Export error:', e);
-      Alert.alert('Ошибка экспорта', `Не удалось создать файл.\n\nДетали: ${e.message}`);
+      Alert.alert('Ошибка', `Не удалось сохранить файл: ${e.message}`);
     } finally {
       setIsExporting(false);
     }
