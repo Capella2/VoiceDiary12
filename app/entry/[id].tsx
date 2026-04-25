@@ -257,7 +257,7 @@ export default function EntryDetailScreen() {
         <ActionButton icon="📤" label="Поделиться" onPress={handleShare} />
         <ActionButton icon="🗑" label="Удалить" onPress={handleDelete} danger />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
