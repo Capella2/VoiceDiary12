@@ -50,6 +50,20 @@ export default function DiaryScreen() {
     setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));
   }
 
+  function confirmDelete(id: number, title: string) {
+    Alert.alert('Удалить?', `Удалить "${title}"?`, [
+      { text: 'Отмена', style: 'cancel' },
+      { 
+        text: 'Удалить', 
+        style: 'destructive', 
+        onPress: async () => { 
+          await deleteEntry(id); 
+          loadEntries(); 
+        } 
+      }
+    ]);
+  }
+
   return (
     <View style={s.container}>
       <View style={s.header}>
@@ -165,13 +179,6 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
       )}
     </TouchableOpacity>
   );
-}
-
-function confirmDelete(id: number, title: string) {
-  Alert.alert('Удалить?', 'Действие нельзя отменить.', [
-    { text: 'Отмена' },
-    { text: 'Удалить', style: 'destructive', onPress: async () => { await deleteEntry(id); } }
-  ]);
 }
 
 const s = StyleSheet.create({
