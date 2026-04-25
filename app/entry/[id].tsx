@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   Alert, Share, StyleSheet, Platform, ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -165,7 +166,11 @@ export default function EntryDetailScreen() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View style={s.container}>
+    <KeyboardAvoidingView 
+      style={s.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
 
         {/* ── Title ──────────────────────────────────────────── */}
