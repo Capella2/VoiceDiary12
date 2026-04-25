@@ -118,6 +118,11 @@ export default function EntryDetailScreen() {
     setEditBodyMode(false);
   }
 
+  function cancelBodyEdit() {
+    if (entry) setBody(entry.body);
+    setEditBodyMode(false);
+  }
+
   function handleDelete() {
     if (!entry) return;
     Alert.alert(
@@ -208,14 +213,23 @@ export default function EntryDetailScreen() {
         <View style={s.bodyCard}>
           {entry.body || editBodyMode ? (
             editBodyMode ? (
-              <TextInput
-                style={[s.bodyText, s.bodyInput]}
-                value={body}
-                onChangeText={setBody}
-                onBlur={saveBody}
-                multiline
-                autoFocus
-              />
+              <View>
+                <TextInput
+                  style={[s.bodyText, s.bodyInput]}
+                  value={body}
+                  onChangeText={setBody}
+                  multiline
+                  autoFocus
+                />
+                <View style={s.editActions}>
+                  <TouchableOpacity style={[s.editBtn, s.cancelBtn]} onPress={cancelBodyEdit}>
+                    <Text style={s.editBtnText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.editBtn, s.saveBtn]} onPress={saveBody}>
+                    <Text style={s.editBtnText}>💾 Сохранить</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ) : (
               <TouchableOpacity onPress={() => setEditBodyMode(true)} activeOpacity={0.7}>
                 <Text style={s.bodyText} selectable>{entry.body}</Text>
@@ -306,7 +320,14 @@ const s = StyleSheet.create({
 
   bodyCard:  { backgroundColor: '#fff', borderRadius: 14, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   bodyText:  { fontSize: 16, color: '#222', lineHeight: 26 },
-  bodyInput: { borderBottomWidth: 1, borderBottomColor: '#eee', padding: 0, textAlignVertical: 'top' },
+  bodyInput: { borderBottomWidth: 1, borderBottomColor: '#eee', padding: 0, textAlignVertical: 'top', minHeight: 100 },
+  
+  editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 12 },
+  editBtn:     { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  cancelBtn:   { backgroundColor: '#eee' },
+  saveBtn:     { backgroundColor: '#43A047' },
+  editBtnText: { fontWeight: '600', color: '#333' },
+  
   mainTranscribeBtn: { backgroundColor: '#1E88E5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
 
   actionBar:   { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: Platform.OS === 'ios' ? 28 : 12, paddingTop: 12 },
