@@ -19,24 +19,24 @@ import { testGeminiConnection } from '../../services/aiProviders/gemini';
 // ─── Provider option ──────────────────────────────────────────────────────────
 
 const PROVIDERS: { label: string; value: Provider }[] = [
-  { label: 'Groq (Whisper) — рекомендуется', value: 'groq' },
+  { label: 'Groq (Whisper) — Recommended', value: 'groq' },
   { label: 'Google Gemini',                  value: 'gemini' },
   { label: 'OpenRouter',                     value: 'openrouter' },
 ];
 
 const LANGUAGES = [
-  { label: 'Авто-определение', value: 'auto' },
-  { label: 'Русский',          value: 'ru' },
-  { label: 'Английский',       value: 'en' },
-  { label: 'Немецкий',         value: 'de' },
-  { label: 'Французский',      value: 'fr' },
-  { label: 'Испанский',        value: 'es' },
+  { label: 'Auto-detect', value: 'auto' },
+  { label: 'Russian',     value: 'ru' },
+  { label: 'English',     value: 'en' },
+  { label: 'German',      value: 'de' },
+  { label: 'French',      value: 'fr' },
+  { label: 'Spanish',     value: 'es' },
 ];
 
 const DATE_FORMATS = [
-  { label: 'ДД.ММ.ГГГГ',  value: 'DD.MM.YYYY' },
-  { label: 'ММ/ДД/ГГГГ',  value: 'MM/DD/YYYY' },
-  { label: 'ГГГГ-ММ-ДД',  value: 'YYYY-MM-DD' },
+  { label: 'DD.MM.YYYY',  value: 'DD.MM.YYYY' },
+  { label: 'MM/DD/YYYY',  value: 'MM/DD/YYYY' },
+  { label: 'YYYY-MM-DD',  value: 'YYYY-MM-DD' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -104,12 +104,12 @@ export default function SettingsScreen() {
       } else if (provider === 'gemini') {
         await testGeminiConnection(geminiKey.trim(), geminiModel.trim());
       } else {
-        Alert.alert('OpenRouter', 'Проверка OpenRouter пока не реализована.');
+        Alert.alert('OpenRouter', 'OpenRouter test not implemented yet.');
         return;
       }
-      Alert.alert('✅ Успешно', 'Подключение работает!');
+      Alert.alert('✅ Success', 'Connection works!');
     } catch (e: any) {
-      Alert.alert('❌ Ошибка', e.message ?? 'Неизвестная ошибка');
+      Alert.alert('❌ Error', e.message ?? 'Unknown error');
     } finally {
       setTesting(false);
     }
@@ -117,19 +117,19 @@ export default function SettingsScreen() {
 
   async function handleCleanup() {
     Alert.alert(
-      'Очистить память?',
-      'Все оригинальные аудиофайлы будут удалены. Текст заметок сохранится.',
+      'Clear Storage?',
+      'All original audio files will be deleted. Note text will be kept.',
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Очистить', 
+          text: 'Clear', 
           style: 'destructive',
           onPress: async () => {
             try {
               const count = await deleteAllAudioFiles();
-              Alert.alert('Готово', `Удалено файлов: ${count}`);
+              Alert.alert('Done', `Deleted files: ${count}`);
             } catch (e) {
-              Alert.alert('Ошибка', 'Не удалось очистить файлы');
+              Alert.alert('Error', 'Failed to clear files');
             }
           }
         }
@@ -142,14 +142,14 @@ export default function SettingsScreen() {
     try {
       const data = getAllEntriesForBackup();
       if (!data || data.length === 0) {
-        Alert.alert('Пусто', 'Нет записей для экспорта');
+        Alert.alert('Empty', 'No entries to export');
         return;
       }
       
       const jsonString = JSON.stringify(data, null, 2);
       const fileName = 'VoiceDiary_Backup.json';
 
-      // ─── Android: Прямое сохранение в папку через SAF ───
+      // Android SAF
       if (Platform.OS === 'android' && StorageAccessFramework) {
         try {
           const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
@@ -162,7 +162,7 @@ export default function SettingsScreen() {
             );
             
             await FileSystem.writeAsStringAsync(fileUri, jsonString, { encoding: FileSystem.EncodingType.UTF8 });
-            Alert.alert('Готово', 'Бэкап успешно сохранен в выбранную папку');
+            Alert.alert('Done', 'Backup successfully saved to selected folder');
             return;
           }
         } catch (safErr) {
@@ -170,22 +170,22 @@ export default function SettingsScreen() {
         }
       }
 
-      // ─── Запасной вариант / iOS: Окно "Поделиться" ───
+      // Sharing fallback / iOS
       const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
       await FileSystem.writeAsStringAsync(tempUri, jsonString);
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(tempUri, { 
           mimeType: 'application/json', 
-          dialogTitle: 'Сохранить бэкап' 
+          dialogTitle: 'Save Backup' 
         });
       } else {
-        Alert.alert('Ошибка', 'Обмен файлами недоступен');
+        Alert.alert('Error', 'Sharing not available');
       }
 
     } catch (e: any) {
       console.error('Export error:', e);
-      Alert.alert('Ошибка', `Не удалось сохранить файл: ${e.message}`);
+      Alert.alert('Error', `Failed to save file: ${e.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -201,20 +201,19 @@ export default function SettingsScreen() {
       const data = JSON.parse(content);
 
       if (!Array.isArray(data)) {
-        throw new Error('Неверный формат файла бэкапа');
+        throw new Error('Invalid backup file format');
       }
 
       const count = importEntries(data);
-      Alert.alert('Успех', `Импортировано новых записей: ${count}`);
+      Alert.alert('Success', `Imported ${count} new entries`);
     } catch (e) {
       console.error('Import error:', e);
-      Alert.alert('Ошибка импорта', 'Не удалось прочитать или загрузить файл бэкапа. Убедитесь, что это корректный JSON-файл VoiceDiary.');
+      Alert.alert('Import Error', 'Failed to read backup file. Make sure it is a valid VoiceDiary JSON.');
     } finally {
       setIsImporting(false);
     }
   }
 
-  // Active API key and setter for currently selected provider
   const activeKey    = provider === 'groq' ? groqKey
                      : provider === 'gemini' ? geminiKey : orKey;
   const setActiveKey = provider === 'groq' ? setGroqKey
@@ -224,7 +223,7 @@ export default function SettingsScreen() {
     <ScrollView style={s.container} contentContainerStyle={s.content}>
 
       {/* ── AI Provider ─────────────────────────────────────────── */}
-      <SectionHeader title="ИИ провайдер" />
+      <SectionHeader title="AI Provider" />
 
       {PROVIDERS.map(p => (
         <TouchableOpacity
@@ -242,7 +241,7 @@ export default function SettingsScreen() {
 
       {/* API Key input */}
       <Text style={s.label}>
-        API ключ ({provider === 'groq' ? 'Groq'
+        API Key ({provider === 'groq' ? 'Groq'
                  : provider === 'gemini' ? 'Gemini' : 'OpenRouter'})
       </Text>
       <View style={s.keyRow}>
@@ -250,7 +249,7 @@ export default function SettingsScreen() {
           style={[s.input, s.keyInput]}
           value={activeKey}
           onChangeText={setActiveKey}
-          placeholder="Вставьте ключ сюда…"
+          placeholder="Paste key here..."
           placeholderTextColor="#aaa"
           secureTextEntry={!showKey}
           autoCapitalize="none"
@@ -267,7 +266,7 @@ export default function SettingsScreen() {
       {/* Gemini model picker */}
       {provider === 'gemini' && (
         <>
-          <Text style={s.label}>Модель Gemini</Text>
+          <Text style={s.label}>Gemini Model</Text>
           {['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'].map(m => (
             <TouchableOpacity
               key={m}
@@ -285,10 +284,10 @@ export default function SettingsScreen() {
       {/* Helper links */}
       <Text style={s.hint}>
         {provider === 'groq'
-          ? '🔗 Бесплатный ключ: console.groq.com  •  2 часа аудио/день'
+          ? '🔗 Free key: console.groq.com  •  2 hours audio/day'
           : provider === 'gemini'
-          ? '🔗 Бесплатный ключ: aistudio.google.com  •  1500 запросов/день'
-          : '🔗 Бесплатный ключ: openrouter.ai'}
+          ? '🔗 Free key: aistudio.google.com  •  1500 requests/day'
+          : '🔗 Free key: openrouter.ai'}
       </Text>
 
       {/* Test button */}
@@ -300,14 +299,14 @@ export default function SettingsScreen() {
       >
         {testing
           ? <ActivityIndicator color="#fff" size="small" />
-          : <Text style={s.testBtnText}>🔌 Проверить подключение</Text>
+          : <Text style={s.testBtnText}>🔌 Test Connection</Text>
         }
       </TouchableOpacity>
 
       {/* ── Transcription ────────────────────────────────────────── */}
-      <SectionHeader title="Расшифровка" />
+      <SectionHeader title="Transcription" />
 
-      <Text style={s.label}>Язык записи</Text>
+      <Text style={s.label}>Recording Language</Text>
       {LANGUAGES.map(l => (
         <TouchableOpacity
           key={l.value}
@@ -323,9 +322,9 @@ export default function SettingsScreen() {
       ))}
 
       {/* ── App preferences ──────────────────────────────────────── */}
-      <SectionHeader title="Приложение" />
+      <SectionHeader title="App Preferences" />
 
-      <Text style={s.label}>Формат даты</Text>
+      <Text style={s.label}>Date Format</Text>
       {DATE_FORMATS.map(f => (
         <TouchableOpacity
           key={f.value}
@@ -342,8 +341,8 @@ export default function SettingsScreen() {
 
       <View style={s.switchRow}>
         <View style={s.switchText}>
-          <Text style={s.switchLabel}>Удалять аудио после расшифровки</Text>
-          <Text style={s.switchHint}>Освобождает место на телефоне</Text>
+          <Text style={s.switchLabel}>Delete audio after transcription</Text>
+          <Text style={s.switchHint}>Saves space on your device</Text>
         </View>
         <Switch
           value={deleteAudio}
@@ -358,7 +357,7 @@ export default function SettingsScreen() {
         onPress={handleCleanup}
         activeOpacity={0.7}
       >
-        <Text style={s.cleanupBtnText}>🗑 Очистить сохраненные аудиофайлы</Text>
+        <Text style={s.cleanupBtnText}>🗑 Clear saved audio files</Text>
       </TouchableOpacity>
 
       {/* ── Save button ───────────────────────────────────────────── */}
@@ -368,29 +367,29 @@ export default function SettingsScreen() {
         activeOpacity={0.8}
       >
         <Text style={s.saveBtnText}>
-          {saved ? '✅ Сохранено!' : 'Сохранить настройки'}
+          {saved ? '✅ Saved!' : 'Save Settings'}
         </Text>
       </TouchableOpacity>
 
       {/* ── Backup & Restore ─────────────────────────────────────── */}
-      <SectionHeader title="Данные (Текст)" />
+      <SectionHeader title="Data (Text)" />
       
       <View style={{ gap: 10, marginTop: 8 }}>
         <TouchableOpacity style={s.secondaryBtn} onPress={handleExportBackup} disabled={isExporting}>
           <Text style={s.secondaryBtnText}>
-            {isExporting ? 'Создание...' : '📤 Экспорт заметок (JSON)'}
+            {isExporting ? 'Creating...' : '📤 Export notes (JSON)'}
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={s.secondaryBtn} onPress={handleImportBackup} disabled={isImporting}>
           <Text style={s.secondaryBtnText}>
-            {isImporting ? 'Загрузка...' : '📥 Импорт из файла'}
+            {isImporting ? 'Loading...' : '📥 Import from file'}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* ── About ────────────────────────────────────────────────── */}
-      <SectionHeader title="О программе" />
+      <SectionHeader title="About" />
       <View style={s.aboutBox}>
         <Text style={s.aboutText}>VoiceDiary v1.0.0</Text>
         <Text style={s.aboutText}>Author: Capt. Stoyev Igor</Text>
@@ -401,8 +400,7 @@ export default function SettingsScreen() {
   );
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
-
+// Section header
 function SectionHeader({ title }: { title: string }) {
   return (
     <View style={s.sectionHeader}>
@@ -411,8 +409,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
+// Styles
 const ACCENT = '#E53935';
 
 const s = StyleSheet.create({

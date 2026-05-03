@@ -169,7 +169,7 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
       });
     } catch (e) {
       console.error('Playback error:', e);
-      Alert.alert('Ошибка', 'Не удалось воспроизвести аудио.');
+      Alert.alert('Error', 'Failed to play audio.');
     }
   }
 
@@ -246,4 +246,6 @@ const s = StyleSheet.create({
   playBtn: { padding: 8, backgroundColor: '#f0f0f0', borderRadius: 20, marginLeft: 10 },
   playBtnIcon: { fontSize: 16 },
   cardBody: { fontSize: 14, color: '#666', marginTop: 4, lineHeight: 20 }
+});
+ineHeight: 20 }
 });

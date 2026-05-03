@@ -173,14 +173,14 @@ export function updateEntryBody(id: number, body: string): void {
 }
 
 /**
- * Получить все записи для бэкапа (включая все поля)
+ * Get all entries for backup (including all fields)
  */
 export function getAllEntriesForBackup(): Entry[] {
   return getDb().getAllSync<Entry>(`SELECT * FROM entries`);
 }
 
 /**
- * Импорт записей из бэкапа
+ * Import entries from backup
  */
 export function importEntries(entries: any[]): number {
   const db = getDb();
@@ -188,7 +188,7 @@ export function importEntries(entries: any[]): number {
   
   db.withTransactionSync(() => {
     for (const item of entries) {
-      // Проверяем наличие обязательных полей
+      // Check for required fields
       if (!item.title || !item.recorded_at) continue;
 
       db.runSync(
@@ -199,7 +199,7 @@ export function importEntries(entries: any[]): number {
           item.body || '',
           item.recorded_at,
           item.duration_sec || 0,
-          null, // Аудиофайлы не переносятся в текстовом бэкапе
+          null, // Audio files are not transferred in text backup
           item.provider || 'backup',
           item.model || '-',
           item.created_at || new Date().toISOString()
@@ -251,7 +251,7 @@ export function getAllSettings(): Record<string, string> {
 }
 
 /**
- * Очистка всех сохраненных аудиофайлов (текст заметок останется)
+ * Cleanup all saved audio files (note text will remain)
  */
 export async function deleteAllAudioFiles(): Promise<number> {
   const entries = getAllEntries();

@@ -42,14 +42,14 @@ export default function EntryDetailScreen() {
       const result = await transcribeAudio(entry.audio_path);
       updateEntryBody(entry.id, result.text);
       setEntry({ ...entry, body: result.text, provider: result.provider, model: result.model });
-      Alert.alert('Готово', 'Запись успешно расшифрована.');
+      Alert.alert('Success', 'Note successfully transcribed.');
       
       if (getSetting(SETTINGS.DELETE_AUDIO) === 'true') {
         await FileSystem.deleteAsync(entry.audio_path, { idempotent: true });
         setEntry(prev => prev ? { ...prev, audio_path: null } : null);
       }
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message ?? 'Не удалось расшифровать.');
+      Alert.alert('Error', e.message ?? 'Failed to transcribe.');
     } finally {
       setIsTranscribing(false);
     }
@@ -85,7 +85,7 @@ export default function EntryDetailScreen() {
       });
     } catch (e) {
       console.error('Playback error:', e);
-      Alert.alert('Ошибка', 'Не удалось воспроизвести аудио.');
+      Alert.alert('Error', 'Failed to play audio.');
     }
   }
 
@@ -126,12 +126,12 @@ export default function EntryDetailScreen() {
   function handleDelete() {
     if (!entry) return;
     Alert.alert(
-      'Удалить запись?',
-      'Это действие нельзя отменить.',
+      'Delete entry?',
+      'This action cannot be undone.',
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Удалить',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             await deleteEntry(entry.id);
@@ -163,7 +163,7 @@ export default function EntryDetailScreen() {
   if (!entry) {
     return (
       <View style={s.center}>
-        <Text style={s.notFound}>Запись не найдена</Text>
+        <Text style={s.notFound}>Entry not found</Text>
       </View>
     );
   }
@@ -223,10 +223,10 @@ export default function EntryDetailScreen() {
                 />
                 <View style={s.editActions}>
                   <TouchableOpacity style={[s.editBtn, s.cancelBtn]} onPress={cancelBodyEdit}>
-                    <Text style={s.editBtnText}>Отмена</Text>
+                    <Text style={s.editBtnText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[s.editBtn, s.saveBtn]} onPress={saveBody}>
-                    <Text style={s.editBtnText}>💾 Сохранить</Text>
+                    <Text style={s.editBtnText}>💾 Save</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -237,7 +237,7 @@ export default function EntryDetailScreen() {
             )
           ) : (
             <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-              <Text style={{ color: '#999', fontStyle: 'italic', marginBottom: 20 }}>Текст пока не расшифрован</Text>
+              <Text style={{ color: '#999', fontStyle: 'italic', marginBottom: 20 }}>Transcription pending</Text>
               <TouchableOpacity 
                 style={[s.mainTranscribeBtn, isTranscribing && { opacity: 0.6 }]} 
                 onPress={handleTranscribe}
@@ -246,7 +246,7 @@ export default function EntryDetailScreen() {
                 {isTranscribing ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>✨ Расшифровать сейчас</Text>
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>✨ Transcribe Now</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -260,23 +260,22 @@ export default function EntryDetailScreen() {
         {entry.audio_path && (
           <ActionButton 
             icon={isPlaying ? "⏸" : "🔊"} 
-            label={isPlaying ? "Пауза" : "Слушать"} 
+            label={isPlaying ? "Pause" : "Listen"} 
             onPress={playAudio} 
           />
         )}
-        <ActionButton icon="📋" label="Копировать" onPress={() => {
+        <ActionButton icon="📋" label="Copy" onPress={() => {
           // Clipboard requires expo-clipboard — use Share as fallback
           Share.share({ message: entry.body });
         }} />
-        <ActionButton icon="📤" label="Поделиться" onPress={handleShare} />
-        <ActionButton icon="🗑" label="Удалить" onPress={handleDelete} danger />
+        <ActionButton icon="📤" label="Share" onPress={handleShare} />
+        <ActionButton icon="🗑" label="Delete" onPress={handleDelete} danger />
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Action button ────────────────────────────────────────────────────────────
-
+// Action button
 function ActionButton({
   icon, label, onPress, danger = false,
 }: {
@@ -293,16 +292,14 @@ function ActionButton({
   );
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
+// Helper
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60).toString().padStart(2, '0');
   const s = (sec % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
+// Styles
 const s = StyleSheet.create({
   container:   { flex: 1, backgroundColor: '#f8f8f8' },
   scroll:      { flex: 1 },

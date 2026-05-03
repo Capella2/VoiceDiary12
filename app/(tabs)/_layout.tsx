@@ -39,24 +39,24 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Дневник',
-          tabBarLabel: 'Дневник',
+          title: 'Diary',
+          tabBarLabel: 'Diary',
           tabBarIcon: ({ size }) => <TabIcon symbol="📓" size={size} />,
         }}
       />
       <Tabs.Screen
         name="record"
         options={{
-          title: 'Запись',
-          tabBarLabel: 'Запись',
+          title: 'Record',
+          tabBarLabel: 'Record',
           tabBarIcon: ({ size }) => <TabIcon symbol="🎙" size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Настройки',
-          tabBarLabel: 'Настройки',
+          title: 'Settings',
+          tabBarLabel: 'Settings',
           tabBarIcon: ({ size }) => <TabIcon symbol="⚙️" size={size} />,
         }}
       />

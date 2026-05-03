@@ -70,7 +70,7 @@ export default function RecordScreen() {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
-        Alert.alert('Нет доступа', 'Разрешите доступ к микрофону.');
+        Alert.alert('No Access', 'Please allow microphone access.');
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -82,7 +82,7 @@ export default function RecordScreen() {
       setState('recording');
       startTimer();
     } catch (e) {
-      Alert.alert('Ошибка', 'Не удалось начать запись.');
+      Alert.alert('Error', 'Failed to start recording.');
     }
   }
 
@@ -105,7 +105,7 @@ export default function RecordScreen() {
   async function transcribe() {
     if (!audioUri) return;
     setState('transcribing');
-    setStatusText(`Расшифровка (${currentProvider})...`);
+    setStatusText(`Transcribing (${currentProvider})...`);
     try {
       const result = await transcribeAudio(audioUri);
       const recordedAt = startTimeRef.current ?? new Date();
@@ -122,7 +122,7 @@ export default function RecordScreen() {
         await FileSystem.deleteAsync(audioUri, { idempotent: true });
       }
       setState('done');
-      setStatusText('Готово!');
+      setStatusText('Done!');
       setTimeout(() => {
         setState('idle');
         router.replace('/');
@@ -130,12 +130,12 @@ export default function RecordScreen() {
     } catch (e) {
       setState('recorded');
       Alert.alert(
-        'Ошибка расшифровки',
-        'Не удалось расшифровать запись. Сохранить её без текста?',
+        'Transcription Error',
+        'Failed to transcribe recording. Save it without text?',
         [
-          { text: 'Отмена', style: 'cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Сохранить черновик',
+            text: 'Save Draft',
             onPress: () => {
               const recordedAt = startTimeRef.current ?? new Date();
               saveEntry({
@@ -148,7 +148,7 @@ export default function RecordScreen() {
                 model: '-',
               });
               setState('done');
-              setStatusText('Сохранено без текста');
+              setStatusText('Saved as draft');
               setTimeout(() => {
                 setState('idle');
                 router.replace('/');
@@ -177,19 +177,19 @@ export default function RecordScreen() {
             {state === 'recording' ? formatTime(elapsed) : formatTime(duration)}
           </Text>
           <Text style={s.hintText}>
-            {state === 'idle' && 'Нажми для записи'}
-            {state === 'recording' && 'Запись идет...'}
-            {isBusy ? statusText : (state === 'recorded' && 'Запись завершена')}
+            {state === 'idle' && 'Tap to record'}
+            {state === 'recording' && 'Recording...'}
+            {isBusy ? statusText : (state === 'recorded' && 'Recording completed')}
           </Text>
         </View>
 
         {state === 'recorded' && !isBusy && (
           <View style={{ width: '100%', gap: 12 }}>
             <TouchableOpacity style={s.transcribeBtn} onPress={transcribe}>
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>✨ Расшифровать</Text>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>✨ Transcribe</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.reRecordBtn} onPress={() => setState('idle')}>
-              <Text>🔄 Перезаписать</Text>
+              <Text>🔄 Re-record</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -198,8 +198,8 @@ export default function RecordScreen() {
   );
 }
 
-// Вспомогательная функция вынесена наружу для стабильности бандлера
-function formatTime(secs) {
+// Helper function
+function formatTime(secs: number) {
   if (!secs) return "00:00";
   var m = Math.floor(secs / 60);
   var s = Math.floor(secs % 60);
