@@ -114,6 +114,13 @@ export default function DiaryScreen() {
             onLongPress={() => confirmDelete(item.id, item.title)}
           />
         )}
+        ListEmptyComponent={
+          <View style={s.emptyContainer}>
+            <Text style={s.emptyText}>
+              {query.trim() !== '' ? 'Ничего не найдено' : 'Записей пока нет'}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -224,6 +231,9 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, height: 40, backgroundColor: '#f0f0f0', borderRadius: 10, paddingHorizontal: 15, fontSize: 16 },
   closeBtn: { padding: 5 },
   closeIcon: { fontSize: 18, color: '#999' },
+
+  emptyContainer: { padding: 40, alignItems: 'center' },
+  emptyText: { color: '#999', fontSize: 16 },
 
   sectionHeader: { padding: 15, backgroundColor: '#eee', borderRadius: 8, marginHorizontal: 10, marginTop: 10 },
   sectionTitle: { fontWeight: '700', color: '#555' },

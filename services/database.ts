@@ -154,7 +154,7 @@ export function searchEntries(params: {
   const args: (string | number)[] = [];
 
   if (params.query && params.query.trim() !== '') {
-    conditions.push(`(title LIKE ? OR body LIKE ?)`);
+    conditions.push(`(LOWER(title) LIKE LOWER(?) OR LOWER(body) LIKE LOWER(?))`);
     const like = `%${params.query.trim()}%`;
     args.push(like, like);
   }
