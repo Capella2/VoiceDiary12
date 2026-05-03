@@ -67,7 +67,27 @@ export default function DiaryScreen() {
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <Text style={s.title}>Дневник</Text>
+        {!searchMode ? (
+          <View style={s.headerRow}>
+            <Text style={s.title}>Дневник</Text>
+            <TouchableOpacity onPress={() => setSearchMode(true)} style={s.searchBtn}>
+              <Text style={s.searchIcon}>🔍</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={s.searchRow}>
+            <TextInput
+              style={s.searchInput}
+              placeholder="Поиск по заметкам..."
+              value={query}
+              onChangeText={setQuery}
+              autoFocus
+            />
+            <TouchableOpacity onPress={() => { setSearchMode(false); setQuery(''); }} style={s.closeBtn}>
+              <Text style={s.closeIcon}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       <SectionList
         sections={sections}
@@ -183,8 +203,18 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
-  header: { padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: '800' },
+  header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: '800', color: '#111' },
+  
+  searchBtn: { padding: 8 },
+  searchIcon: { fontSize: 20 },
+  
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, height: 40, backgroundColor: '#f0f0f0', borderRadius: 10, paddingHorizontal: 15, fontSize: 16 },
+  closeBtn: { padding: 5 },
+  closeIcon: { fontSize: 18, color: '#999' },
+
   sectionHeader: { padding: 15, backgroundColor: '#eee', borderRadius: 8, marginHorizontal: 10, marginTop: 10 },
   sectionTitle: { fontWeight: '700', color: '#555' },
   card: { padding: 16, backgroundColor: '#fff', marginHorizontal: 10, marginVertical: 5, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
