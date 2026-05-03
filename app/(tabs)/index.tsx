@@ -247,5 +247,3 @@ const s = StyleSheet.create({
   playBtnIcon: { fontSize: 16 },
   cardBody: { fontSize: 14, color: '#666', marginTop: 4, lineHeight: 20 }
 });
-ineHeight: 20 }
-});
