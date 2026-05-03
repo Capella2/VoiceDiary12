@@ -146,37 +146,15 @@ export function getEntryById(id: number): Entry | null {
 
 export function searchEntries(params: {
   query?: string;
-  dateFrom?: string;   // ISO date string  'YYYY-MM-DD'
-  dateTo?: string;     // ISO date string  'YYYY-MM-DD'
 }): Entry[] {
-  const db = getDb();
-  const conditions: string[] = [];
-  const args: (string | number)[] = [];
+  const all = getAllEntries();
+  const q = params.query?.trim().toLowerCase();
+  
+  if (!q) return all;
 
-  if (params.query && params.query.trim() !== '') {
-    conditions.push(`(LOWER(title) LIKE LOWER(?) OR LOWER(body) LIKE LOWER(?))`);
-    const like = `%${params.query.trim()}%`;
-    args.push(like, like);
-  }
-
-  if (params.dateFrom) {
-    conditions.push(`recorded_at >= ?`);
-    args.push(params.dateFrom);
-  }
-
-  if (params.dateTo) {
-    // include the whole end day
-    conditions.push(`recorded_at <= ?`);
-    args.push(params.dateTo + 'T23:59:59');
-  }
-
-  const where = conditions.length > 0
-    ? `WHERE ${conditions.join(' AND ')}`
-    : '';
-
-  return db.getAllSync<Entry>(
-    `SELECT * FROM entries ${where} ORDER BY recorded_at DESC`,
-    args
+  return all.filter(entry => 
+    entry.title.toLowerCase().includes(q) || 
+    entry.body.toLowerCase().includes(q)
   );
 }
 

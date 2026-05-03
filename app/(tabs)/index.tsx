@@ -22,22 +22,23 @@ export default function DiaryScreen() {
   const [searchMode, setSearchMode] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
+  const loadEntries = useCallback((text = query) => {
+    const data = text.trim() === '' ? getAllEntries() : searchEntries({ query: text });
+    console.log(`[Search] query: "${text}", found: ${data.length}`);
+    setRawData(data);
+  }, [query]);
+
   // Загрузка при фокусе на экран
   useFocusEffect(
     useCallback(() => {
       loadEntries();
-    }, [])
+    }, [loadEntries])
   );
 
   // Обновление при изменении поискового запроса
   useEffect(() => {
     loadEntries();
-  }, [query]);
-
-  function loadEntries(text = query) {
-    const data = text.trim() === '' ? getAllEntries() : searchEntries({ query: text });
-    setRawData(data);
-  }
+  }, [query, loadEntries]);
 
   // Группировка записей
   const sections = useMemo(() => {
