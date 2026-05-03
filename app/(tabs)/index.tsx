@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx
 // Main screen — diary entries grouped by month
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, SectionList, TouchableOpacity,
   TextInput, Alert, StyleSheet, Platform, LayoutAnimation, UIManager,
@@ -22,7 +22,17 @@ export default function DiaryScreen() {
   const [searchMode, setSearchMode] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
-  useFocusEffect(useCallback(() => { loadEntries(); }, [query]));
+  // Загрузка при фокусе на экран
+  useFocusEffect(
+    useCallback(() => {
+      loadEntries();
+    }, [])
+  );
+
+  // Обновление при изменении поискового запроса
+  useEffect(() => {
+    loadEntries();
+  }, [query]);
 
   function loadEntries(text = query) {
     const data = text.trim() === '' ? getAllEntries() : searchEntries({ query: text });
