@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-// Main screen — diary entries grouped by month
+// Main screen — diary entries grouped by day with persistent collapse state
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useFocusEffect, router } from 'expo-router';
-import { getAllEntries, searchEntries, deleteEntry, Entry } from '../../services/database';
+import { getAllEntries, searchEntries, deleteEntry, Entry, getSetting, saveSetting } from '../../services/database';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -21,51 +21,83 @@ export default function DiaryScreen() {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const loadEntries = useCallback((text = query) => {
     const data = text.trim() === '' ? getAllEntries() : searchEntries({ query: text });
-    console.log(`[Search] query: "${text}", found: ${data.length}`);
     setRawData(data);
   }, [query]);
 
-  // Загрузка при фокусе на экран
+  // Load state and data on focus
   useFocusEffect(
     useCallback(() => {
+      // 1. Load data
       loadEntries();
+      
+      // 2. Load persistent UI state
+      const saved = getSetting('collapsed_groups');
+      if (saved) {
+        try {
+          setCollapsedSections(JSON.parse(saved));
+        } catch (e) {
+          console.error('[Diary] Failed to parse collapsed state', e);
+        }
+      }
+      setIsLoaded(true);
     }, [loadEntries])
   );
 
-  // Обновление при изменении поискового запроса
+  // Sync state to DB on changes
+  useEffect(() => {
+    if (isLoaded) {
+      saveSetting('collapsed_groups', JSON.stringify(collapsedSections));
+    }
+  }, [collapsedSections, isLoaded]);
+
+  // Update when searching
   useEffect(() => {
     loadEntries();
   }, [query, loadEntries]);
 
-  // Группировка записей
+  // Group entries by Day
   const sections = useMemo(() => {
     const groups: Record<string, Entry[]> = {};
     rawData.forEach(entry => {
       const date = new Date(entry.recorded_at);
-      const key = `${date.getFullYear()} — ${date.toLocaleString('ru', { month: 'long' })}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(entry);
+      // Key: YYYY-MM-DD
+      const dayKey = date.toISOString().split('T')[0];
+      if (!groups[dayKey]) groups[dayKey] = [];
+      groups[dayKey].push(entry);
     });
-    return Object.keys(groups).sort().reverse().map(title => ({
-      title,
-      data: collapsedSections[title] ? [] : groups[title],
-      isCollapsed: !!collapsedSections[title]
-    }));
+
+    return Object.keys(groups).sort().reverse().map(dayKey => {
+      const date = new Date(dayKey);
+      const title = date.toLocaleDateString('en', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      return {
+        title,
+        dayKey,
+        data: collapsedSections[dayKey] ? [] : groups[dayKey],
+        isCollapsed: !!collapsedSections[dayKey],
+        count: groups[dayKey].length
+      };
+    });
   }, [rawData, collapsedSections]);
 
-  function toggleSection(title: string) {
+  function toggleSection(dayKey: string) {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));
+    setCollapsedSections(prev => ({ ...prev, [dayKey]: !prev[dayKey] }));
   }
 
   function confirmDelete(id: number, title: string) {
-    Alert.alert('Удалить?', `Удалить "${title}"?`, [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert('Delete?', `Are you sure you want to delete "${title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
       { 
-        text: 'Удалить', 
+        text: 'Delete', 
         style: 'destructive', 
         onPress: async () => { 
           await deleteEntry(id); 
@@ -80,7 +112,7 @@ export default function DiaryScreen() {
       <View style={s.header}>
         {!searchMode ? (
           <View style={s.headerRow}>
-            <Text style={s.title}>Дневник</Text>
+            <Text style={s.title}>Diary</Text>
             <TouchableOpacity onPress={() => setSearchMode(true)} style={s.searchBtn}>
               <Text style={s.searchIcon}>🔍</Text>
             </TouchableOpacity>
@@ -89,7 +121,7 @@ export default function DiaryScreen() {
           <View style={s.searchRow}>
             <TextInput
               style={s.searchInput}
-              placeholder="Поиск по заметкам..."
+              placeholder="Search notes..."
               value={query}
               onChangeText={setQuery}
               autoFocus
@@ -104,8 +136,10 @@ export default function DiaryScreen() {
         sections={sections}
         keyExtractor={item => String(item.id)}
         renderSectionHeader={({ section }) => (
-          <TouchableOpacity style={s.sectionHeader} onPress={() => toggleSection(section.title)}>
-            <Text style={s.sectionTitle}>{section.title} ({section.isCollapsed ? '...' : section.data.length})</Text>
+          <TouchableOpacity style={s.sectionHeader} onPress={() => toggleSection(section.dayKey)}>
+            <Text style={s.sectionTitle}>
+              {section.title} ({section.isCollapsed ? '...' : section.count})
+            </Text>
           </TouchableOpacity>
         )}
         renderItem={({ item }) => (
@@ -118,7 +152,7 @@ export default function DiaryScreen() {
         ListEmptyComponent={
           <View style={s.emptyContainer}>
             <Text style={s.emptyText}>
-              {query.trim() !== '' ? 'Ничего не найдено' : 'Записей пока нет'}
+              {query.trim() !== '' ? 'No results found' : 'No entries yet'}
             </Text>
           </View>
         }
@@ -127,7 +161,7 @@ export default function DiaryScreen() {
   );
 }
 
-// ─── Вспомогательные функции и стили (EntryCard, EmptyState, styles) ──────────
+// ─── EntryCard Component ──────────────────────────────────────────────────────
 
 function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () => void, onLongPress: () => void }) {
   const [collapsed, setCollapsed] = useState(true);
@@ -173,7 +207,6 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
     }
   }
 
-  // Cleanup sound on unmount
   useFocusEffect(
     useCallback(() => {
       return () => {
@@ -206,18 +239,20 @@ function EntryCard({ entry, onPress, onLongPress }: { entry: Entry, onPress: () 
 
       {!collapsed && (
         <Text style={[s.cardBody, !entry.body && { fontStyle: 'italic', color: '#999' }]}>
-          {entry.body || '(Ожидает расшифровки...)'}
+          {entry.body || '(Waiting for transcription...)'}
         </Text>
       )}
       
       {collapsed && (
         <Text style={[s.cardBody, !entry.body && { fontStyle: 'italic', color: '#999' }]} numberOfLines={1}>
-          {entry.body || '(Ожидает расшифровки...)'}
+          {entry.body || '(Waiting for transcription...)'}
         </Text>
       )}
     </TouchableOpacity>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
@@ -237,7 +272,8 @@ const s = StyleSheet.create({
   emptyText: { color: '#999', fontSize: 16 },
 
   sectionHeader: { padding: 15, backgroundColor: '#eee', borderRadius: 8, marginHorizontal: 10, marginTop: 10 },
-  sectionTitle: { fontWeight: '700', color: '#555' },
+  sectionTitle: { fontWeight: '700', color: '#555', fontSize: 14 },
+  
   card: { padding: 16, backgroundColor: '#fff', marginHorizontal: 10, marginVertical: 5, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardTitleContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
