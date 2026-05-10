@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx
 // Main screen — diary entries grouped by Year -> Month -> Day with persistent collapse state
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   TextInput, Alert, StyleSheet, Platform, LayoutAnimation, UIManager,
@@ -30,6 +30,8 @@ export default function DiaryScreen() {
   const [searchMode, setSearchMode] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showLaunchChoice, setShowLaunchChoice] = useState(false);
+  const isFirstMount = useRef(true);
 
   const loadEntries = useCallback((text = query) => {
     const data = text.trim() === '' ? getAllEntries() : searchEntries({ query: text });
@@ -40,6 +42,12 @@ export default function DiaryScreen() {
   useFocusEffect(
     useCallback(() => {
       loadEntries();
+      
+      if (isFirstMount.current) {
+        setShowLaunchChoice(true);
+        isFirstMount.current = false;
+      }
+
       const saved = getSetting('ui_collapsed_state_v2'); // New key for 4-tier state
       if (saved) {
         try { setCollapsed(JSON.parse(saved)); } catch(e) {}
@@ -150,6 +158,34 @@ export default function DiaryScreen() {
 
   return (
     <View style={s.container}>
+      {/* ── Launch Choice Modal ────────────────────────────────── */}
+      {showLaunchChoice && (
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalEmoji}>🎙️</Text>
+            <Text style={s.modalTitle}>Welcome to VoiceDiary</Text>
+            <Text style={s.modalHint}>How would you like to start?</Text>
+            
+            <TouchableOpacity 
+              style={[s.modalBtn, s.modalBtnPrimary]} 
+              onPress={() => {
+                setShowLaunchChoice(false);
+                router.push('/record?mode=quick');
+              }}
+            >
+              <Text style={s.modalBtnTextPrimary}>⚡ Quick 6s Record</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={s.modalBtn} 
+              onPress={() => setShowLaunchChoice(false)}
+            >
+              <Text style={s.modalBtnText}>Open Diary</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <View style={s.header}>
         {!searchMode ? (
           <View style={s.headerRow}>
@@ -339,4 +375,15 @@ const s = StyleSheet.create({
 
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: '#999', fontSize: 16 },
+
+  // Modal Styles
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 999, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalCard: { backgroundColor: '#fff', borderRadius: 20, padding: 30, width: '100%', alignItems: 'center', elevation: 10 },
+  modalEmoji: { fontSize: 50, marginBottom: 15 },
+  modalTitle: { fontSize: 22, fontWeight: '800', marginBottom: 5 },
+  modalHint: { fontSize: 15, color: '#888', marginBottom: 25 },
+  modalBtn: { width: '100%', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
+  modalBtnPrimary: { backgroundColor: '#E53935' },
+  modalBtnTextPrimary: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  modalBtnText: { color: '#666', fontWeight: '600', fontSize: 16 },
 });

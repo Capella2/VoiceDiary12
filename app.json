@@ -32,7 +32,19 @@
       "navigationBar": {
         "barStyle": "dark-content",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "shortcuts": [
+        {
+          "id": "quick-record",
+          "shortLabel": "Quick 6s Record",
+          "longLabel": "Record a quick 6-second voice note",
+          "icon": "./assets/images/icon.png",
+          "intent": {
+            "action": "android.intent.action.VIEW",
+            "data": "voicediary://record?mode=quick"
+          }
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

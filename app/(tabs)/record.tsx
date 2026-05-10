@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Alert, ScrollView, StyleSheet,
@@ -6,7 +6,7 @@ import {
 import { Audio } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { saveEntry, getSetting } from '../../services/database';
 import { transcribeAudio, buildEntryTitle, SETTINGS } from '../../services/transcription';
 
@@ -34,7 +34,45 @@ type ScreenState = 'idle' | 'recording' | 'recorded' | 'transcribing' | 'done';
 
 export default function RecordScreen() {
   const insets = useSafeAreaInsets();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const [state, setState] = useState<ScreenState>('idle');
+
+  // Quick Record Logic
+  useEffect(() => {
+    if (mode === 'quick' && state === 'idle') {
+      startRecording();
+      const timer = setTimeout(() => {
+        stopRecording();
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === 'quick' && state === 'recorded') {
+      saveQuickDraft();
+    }
+  }, [state, mode]);
+
+  async function saveQuickDraft() {
+    if (!audioUri && !recordingRef.current) return;
+    const recordedAt = startTimeRef.current ?? new Date();
+    saveEntry({
+      title: buildEntryTitle(recordedAt) + ' (Quick)',
+      body: '',
+      recorded_at: recordedAt.toISOString(),
+      duration_sec: duration || 6,
+      audio_path: audioUri,
+      provider: 'offline',
+      model: 'quick-6s',
+    });
+    setState('done');
+    setStatusText('Quick note saved!');
+    setTimeout(() => {
+      setState('idle');
+      router.replace('/');
+    }, 1000);
+  }
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioUri, setAudioUri] = useState<string | null>(null);
